@@ -18,6 +18,7 @@ class Server {
 		void						parseConfig(std::list<std::string> &serverTokens);
 		void 						setUpListenSocket();
 		void						findLocation(std::string path);
+		const Location*				matchLocation(const std::string& requestedPath);
 
 		int&						getListenSocket();
 		int& 						getPort();

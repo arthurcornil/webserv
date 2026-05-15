@@ -1,7 +1,7 @@
 
 #include "Location.hpp"
 
-Location::Location(): _autoindex(false), _returnCode(-1), _allow_get(false), _allow_post(false), _allow_delete(false) {}
+Location::Location(): _autoindex(false), _returnCode(-1), _allow_get(false), _allow_post(false), _allow_delete(false), _client_max_body_size(-1) {}
 Location::Location(Location const &copy) {
 	*this = copy;
 }
@@ -21,6 +21,7 @@ Location& Location::operator=(Location const &assignment) {
 		_allow_delete = assignment._allow_delete;
 		_uploadDir = assignment._uploadDir;
 		_cgi = assignment._cgi;
+		_client_max_body_size = assignment._client_max_body_size;
 	}
 	return *this;
 }
@@ -36,6 +37,7 @@ std::string& Location::getRedirectionUrl() {return _returnUrl;}
 std::string& Location::getUploadDir() {return _uploadDir;}
 std::vector<std::string>& Location::getIndexes() {return _indexes;}
 std::map<std::string, std::string>&	Location::getCgi() {return _cgi;}
+long long Location::getMaxBodySize() const { return _client_max_body_size; }
 bool	Location::getMethod(std::string &method) {
 	if (method == "GET")
 		return canGet();
@@ -110,6 +112,48 @@ void Location::setUploadDir() {
 	_locationTokens.pop_front();
 }
 
+void Location::setClientMaxBodySize() {
+    std::string token = _locationTokens.front();
+    _locationTokens.pop_front();
+
+    char unit = token[token.length() - 1];
+    std::string value = token.substr(0, token.length() - 1);
+
+    std::stringstream ss(value);
+    long long size = 0;
+    ss >> size;
+    if (ss.fail() || !ss.eof() || size < 0)
+        throw std::runtime_error("Config: invalid client_max_body_size value");
+
+    if (unit == 'K' || unit == 'k')
+    {
+        if (size > (long long)MAX_BODY_SIZE_GO * 1024 * 1024)
+            size = (long long)MAX_BODY_SIZE_GO * 1024 * 1024;
+        size *= 1024;
+    }
+    else if (unit == 'M' || unit == 'm')
+    {
+        if (size > (long long)MAX_BODY_SIZE_GO * 1024)
+            size = (long long)MAX_BODY_SIZE_GO * 1024;
+        size *= 1024 * 1024;
+    }
+    else if (unit == 'G' || unit == 'g')
+    {
+        if (size > MAX_BODY_SIZE_GO)
+            size = MAX_BODY_SIZE_GO;
+        size *= 1024 * 1024 * 1024;
+    }
+	else if (unit == 'B' || unit == 'b')
+	{
+		if (size > (long long)MAX_BODY_SIZE_GO * 1024 * 1024 * 1024)
+			size = (long long)MAX_BODY_SIZE_GO * 1024 * 1024 * 1024;
+	}
+    else
+        throw std::runtime_error("Config: invalid client_max_body_size unit");
+
+    _client_max_body_size = size;
+}
+
 void Location::addCgi() {
 	std::string extension = _locationTokens.front();
 	_locationTokens.pop_front();
@@ -144,6 +188,7 @@ void	Location::parser(std::list<std::string> &locationTokens) {
 		else if (directive == "allow_methods") setMethod();
 		else if (directive == "upload_dir") setUploadDir();
 		else if (directive == "cgi") addCgi();
+		else if (directive == "client_max_body_size") setClientMaxBodySize();
 		else
 			throw std::runtime_error("Config: unknown location directive: " + directive);
 		expected(";");

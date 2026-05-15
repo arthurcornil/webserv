@@ -1,11 +1,11 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "./../Webserv.hpp"
+#include "../Webserv.hpp"
+#include "../server/Server.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "./../server/Server.hpp"
-#include "../cgi/Cgi.hpp"
+#include "Cgi.hpp"
 
 class Client{
 	public:
@@ -22,7 +22,7 @@ class Client{
 		void 			setFd(int fd);
 		void			setServer(Server &server);
 		Server			&getServer() const;
-		bool 			setResponse();
+		bool 			responseIsReady();
 		void			setCgi(Cgi *);
 		void			updateLastActivity();
 		

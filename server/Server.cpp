@@ -63,36 +63,51 @@ void Server::setRoot() {
 }
 
 void Server::setMaxBodySize() {
-	_client_max_body_size = 0;
-	std::string token = _serverTokens.front();
-	char unit = token[token.length() - 1];
-	std::string value = token.substr(0, token.length() - 1);
-	
-	std::stringstream ss(value);
-	ss >> _client_max_body_size;
-	if (ss.fail() || !ss.eof())
-		throw std::runtime_error("Config: invalid client_max_body_size unit");
-	if (unit == 'K' || unit == 'k')
-	{
-		if (_client_max_body_size > MAX_BODY_SIZE_GO * 1024 * 1024)
-			_client_max_body_size = MAX_BODY_SIZE_GO * 1024 * 1024;
-		_client_max_body_size *= 1024;
-	}
-	else if (unit == 'M' || unit == 'm')
-	{
-		if (_client_max_body_size > MAX_BODY_SIZE_GO * 1024)
-			_client_max_body_size = MAX_BODY_SIZE_GO * 1024;
-		_client_max_body_size *= 1024 * 1024;
-	}
-	else if (unit == 'G' || unit == 'g')
-	{
-		if (_client_max_body_size > MAX_BODY_SIZE_GO)
-			_client_max_body_size = MAX_BODY_SIZE_GO;
-		_client_max_body_size *= 1024 * 1024 * 1024;
-	}
-	else
-		throw std::runtime_error("Config: invalid client_max_body_size unit");
-	_serverTokens.pop_front();
+    _client_max_body_size = 0;
+    std::string token = _serverTokens.front();
+    char unit = token[token.length() - 1];
+    std::string value;
+
+    if (std::isdigit(unit)) {
+        value = token;
+        unit = 'B';
+    } else {
+        value = token.substr(0, token.length() - 1);
+    }
+
+    std::stringstream ss(value);
+    ss >> _client_max_body_size;
+    if (ss.fail() || !ss.eof())
+        throw std::runtime_error("Config: invalid client_max_body_size value");
+    if (_client_max_body_size <= 0)
+        throw std::runtime_error("Config: invalid client_max_body_size value");
+
+    if (unit == 'K' || unit == 'k')
+    {
+        if (_client_max_body_size > MAX_BODY_SIZE_GO * 1024 * 1024)
+            _client_max_body_size = MAX_BODY_SIZE_GO * 1024 * 1024;
+        _client_max_body_size *= 1024;
+    }
+    else if (unit == 'M' || unit == 'm')
+    {
+        if (_client_max_body_size > MAX_BODY_SIZE_GO * 1024)
+            _client_max_body_size = MAX_BODY_SIZE_GO * 1024;
+        _client_max_body_size *= 1024 * 1024;
+    }
+    else if (unit == 'G' || unit == 'g')
+    {
+        if (_client_max_body_size > MAX_BODY_SIZE_GO)
+            _client_max_body_size = MAX_BODY_SIZE_GO;
+        _client_max_body_size *= 1024 * 1024 * 1024;
+    }
+    else if (unit == 'B' || unit == 'b')
+    {
+        if (_client_max_body_size > (long long)MAX_BODY_SIZE_GO * 1024 * 1024 * 1024)
+            _client_max_body_size = (long long)MAX_BODY_SIZE_GO * 1024 * 1024 * 1024;
+    }
+    else
+        throw std::runtime_error("Config: invalid client_max_body_size unit");
+    _serverTokens.pop_front();
 }
 
 void Server::addLocation() {
@@ -231,6 +246,24 @@ void Server::parseConfig(std::list<std::string> &serverTokens) {
 	configIsValid();
 }
 
+const Location* Server::matchLocation(const std::string& reqPath) {
+    std::vector<Location> &locations = this->getLocations();
+	Location *matched = NULL;
+
+    for (size_t i = 0; i < locations.size(); i ++) {
+        const std::string currLocPath = locations[i].getPath();
+        if (reqPath.find(currLocPath) == 0) {
+            if (!(reqPath.length() == currLocPath.length()
+                || reqPath[currLocPath.length()] == '/'
+                || currLocPath[currLocPath.length() - 1] == '/'))
+                    continue ;
+            else if (!matched || currLocPath.length() > matched->getPath().length())
+                matched = &(locations[i]);
+        }
+    }
+	return matched;
+}
+
 std::ostream& operator<<(std::ostream &os, Server &conf) {
 	os << BOLD_PINK "========= NEW SERVER CONFIG =========" RESET << std::endl;
 	os << "_port = " << conf.getPort() << std::endl;
@@ -281,4 +314,3 @@ std::ostream& operator<<(std::ostream &os, Server &conf) {
 	os << "===end of this server===" << std::endl;
 	return os;
 }
-

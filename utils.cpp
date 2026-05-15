@@ -1,10 +1,18 @@
-#include "utils.hpp"
+#include "Webserv.hpp"
+#include <sys/time.h>
 
+double now() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec / 1e6;
+}
 
 void removeSpacesAround(std::string &str) {
 	size_t start = str.find_first_not_of(" \t\r\n");
-	if (start == std::string::npos)
+	if (start == std::string::npos) {
 		str = "";
+		return ;
+	}
 	size_t end = str.find_last_not_of(" \t\r\n");
 	str = str.substr(start, end - start + 1);
 }
@@ -42,7 +50,7 @@ std::string lexer(std::string &file) {
 
 	std::ifstream filestream(file.c_str());
 	if (!filestream.is_open())
-		throw ;
+		throw std::runtime_error("Could not open file: " + file);
 	while (getline(filestream, line))
 	{
 		size_t commentPos = line.find('#');
@@ -57,9 +65,7 @@ std::string lexer(std::string &file) {
 }
 
 void ipIsValid(std::string ip){
-	std::cout << ip << std::endl;
 	addSpaces(ip, '.');
-	std::cout << ip << std::endl;
 	std::stringstream ss(ip);
 	int i = 0;
 		std::string dot;

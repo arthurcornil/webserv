@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload & Manage</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        h1, h2 { color: #333; }
+        form { margin-bottom: 30px; padding: 20px; background: #f4f4f4; border-radius: 6px; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 8px; background: #f9f9f9; margin-bottom: 4px; border-radius: 4px;
+             display: flex; justify-content: space-between; align-items: center; }
+        button { cursor: pointer; padding: 4px 12px; border: none; border-radius: 4px; }
+        .delete-btn { background: #c0392b; color: white; }
+        .delete-btn:hover { background: #a83225; }
+        #status { margin-top: 10px; padding: 8px; border-radius: 4px; }
+        .ok { background: #d4edda; color: #155724; }
+        .err { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>File Upload</h1>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <div id="status"></div>
+
+    <h2>Uploaded files</h2>
+    <ul id="fileList"><li>Loading...</li></ul>
+
+    <script>
+        const UPLOAD_DIR = "/uploads";
+        const status = document.getElementById("status");
+        const fileList = document.getElementById("fileList");
+
+        function showStatus(msg, ok) {
+            status.textContent = msg;
+            status.className = ok ? "ok" : "err";
+            setTimeout(() => { status.textContent = ""; status.className = ""; }, 3000);
+        }
+
+        async function loadFiles() {
+            try {
+                const res = await fetch(UPLOAD_DIR + "/");
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const html = await res.text();
+                const doc = new DOMParser().parseFromString(html, "text/html");
+                const links = doc.querySelectorAll("a");
+                const files = [];
+                links.forEach(a => {
+                    const name = a.textContent.trim();
+                    if (name && name !== ".." && !name.endsWith("/")) files.push(name);
+                });
+                renderFiles(files);
+            } catch (e) {
+                fileList.innerHTML = "<li>Could not load file list: " + e.message + "</li>";
+            }
+        }
+
+        function renderFiles(files) {
+            if (files.length === 0) {
+                fileList.innerHTML = "<li>(empty)</li>";
+                return;
+            }
+            fileList.innerHTML = "";
+            files.forEach(name => {
+                const li = document.createElement("li");
+                const a = document.createElement("a");
+                a.href = UPLOAD_DIR + "/" + name;
+                a.textContent = name;
+                a.target = "_blank";
+                const btn = document.createElement("button");
+                btn.textContent = "Delete";
+                btn.className = "delete-btn";
+                btn.onclick = () => deleteFile(name);
+                li.appendChild(a);
+                li.appendChild(btn);
+                fileList.appendChild(li);
+            });
+        }
+
+        async function deleteFile(name) {
+            if (!confirm("Delete " + name + "?")) return;
+            try {
+                const res = await fetch(UPLOAD_DIR + "/" + name, { method: "DELETE" });
+                if (res.ok) {
+                    showStatus("Deleted " + name, true);
+                    loadFiles();
+                } else {
+                    showStatus("Delete failed: HTTP " + res.status, false);
+                }
+            } catch (e) {
+                showStatus("Delete error: " + e.message, false);
+            }
+        }
+
+        document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+            try {
+                const res = await fetch(UPLOAD_DIR, { method: "POST", body: data });
+                if (res.ok) {
+                    showStatus("Upload successful", true);
+                    form.reset();
+                    loadFiles();
+                } else {
+                    showStatus("Upload failed: HTTP " + res.status, false);
+                }
+            } catch (e) {
+                showStatus("Upload error: " + e.message, false);
+            }
+        });
+
+        loadFiles();
+    </script>
+</body>
+</html>

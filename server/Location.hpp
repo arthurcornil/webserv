@@ -29,6 +29,7 @@ class Location{
 		std::string&						getUploadDir();
 		bool 								getMethod(std::string &method);
 		std::vector<std::string>& 			getIndexes();
+		long long							getMaxBodySize() const;
 		std::map<std::string, std::string>&	getCgi();
 
 	private:
@@ -40,6 +41,7 @@ class Location{
 		void setUploadDir();
 		void addIndexes();
 		void addCgi();
+		void setClientMaxBodySize();
 
 		void expected(std::string expected);
 
@@ -55,6 +57,7 @@ class Location{
 		bool								_allow_delete;
 		std::string							_uploadDir;
 		std::map<std::string, std::string>	_cgi;
+		long long							_client_max_body_size;
 };
 
 std::ostream& operator<<(std::ostream &os, Location &location);

@@ -1,4 +1,4 @@
-#include "Cluster.hpp"
+#include "cluster/Cluster.hpp"
 
 int main(int ac, char **av)
 {
@@ -11,6 +11,6 @@ int main(int ac, char **av)
 		webserv.config(configPath);
 		webserv.serv();
 	} catch (std::exception &e) {
-		return std::cerr << "Error:" << e.what() << std::endl, -1;
+		return std::cerr << "Error: " << e.what() << std::endl, -1;
 	}
 }

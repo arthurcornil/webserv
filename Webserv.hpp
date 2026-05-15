@@ -1,10 +1,12 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-#define BUFFER_SIZE 65536
+#define BUFFER_SIZE (64 * 1024)
 #define TIMEOUT 10
-#define MAX_HEADER_SIZE 10000
+#define MAX_HEADER_SIZE 8192
 #define MAX_BODY_SIZE_GO 4
+#define LARGE_BODY_THRESHOLD (1 * 1024 * 1024)
+#define PATH_MAX 4096
 
 
 #define BOLD_ORANGE  "\033[1;33m"  // client
@@ -34,7 +36,25 @@
 #include <unistd.h>
 #include <cstring>
 #include <algorithm>
+#include <signal.h>
 
-#include "utils.hpp"
+//UTILS
+
+void        			removeSpacesAround(std::string &str);
+bool       				isSpacesInside(std::string &str);
+void       				addSpaces(std::string &line, char c);
+std::string 			lexer(std::string &file);
+std::list<std::string>	tokenizer(std::string &buffer);
+void					ipIsValid(std::string ip);
+std::string				sizetostr(int num);
+long					ft_strhexatoul(std::string str);
+double					now();
+
+template <typename T>
+std::string toString(T n) {
+    std::ostringstream ss;
+    ss << n;
+    return ss.str();
+}
 
 #endif
